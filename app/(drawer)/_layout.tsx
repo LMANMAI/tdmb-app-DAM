@@ -1,17 +1,18 @@
+import { queryClient } from "@/lib/queryClient";
 import {
   Feather,
   Ionicons,
   MaterialCommunityIcons,
   MaterialIcons,
 } from "@expo/vector-icons";
-import "react-native-reanimated";
-
 import {
   DrawerContentScrollView,
   type DrawerContentComponentProps,
 } from "@react-navigation/drawer";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Drawer } from "expo-router/drawer";
 import { Pressable, Text, View } from "react-native";
+import "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MoviesProvider, useMovies, type ListType } from "../../context/movies";
 
@@ -213,55 +214,57 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
 
 export default function DrawerLayout() {
   return (
-    <MoviesProvider>
-      <Drawer
-        screenOptions={{
-          headerShown: true,
-          headerTransparent: true,
-          headerTitle: "",
-          headerShadowVisible: false,
-          headerStyle: { backgroundColor: "transparent" },
+    <QueryClientProvider client={queryClient}>
+      <MoviesProvider>
+        <Drawer
+          screenOptions={{
+            headerShown: true,
+            headerTransparent: true,
+            headerTitle: "",
+            headerShadowVisible: false,
+            headerStyle: { backgroundColor: "transparent" },
 
-          drawerType: "front",
-          overlayColor: "rgba(0,0,0,0.25)",
-          drawerStyle: {
-            width: 300,
-            backgroundColor: "#fff",
-            borderTopRightRadius: 28,
-            borderBottomRightRadius: 28,
-          },
-        }}
-        drawerContent={(props) => <CustomDrawerContent {...props} />}
-      >
-        <Drawer.Screen
-          name="home/index"
-          options={{
-            title: "Inicio",
-            drawerItemStyle: { display: "none" },
+            drawerType: "front",
+            overlayColor: "rgba(0,0,0,0.25)",
+            drawerStyle: {
+              width: 300,
+              backgroundColor: "#fff",
+              borderTopRightRadius: 28,
+              borderBottomRightRadius: 28,
+            },
           }}
-        />
-        <Drawer.Screen
-          name="about/index"
-          options={{
-            title: "Acerca de Joyts",
-            drawerItemStyle: { display: "none" },
-          }}
-        />
-        <Drawer.Screen
-          name="all-movies/index"
-          options={{
-            title: "Todas las películas",
-            drawerItemStyle: { display: "none" },
-          }}
-        />
-        <Drawer.Screen
-          name="movie/[id]"
-          options={{
-            headerShown: false,
-            drawerItemStyle: { display: "none" },
-          }}
-        />
-      </Drawer>
-    </MoviesProvider>
+          drawerContent={(props) => <CustomDrawerContent {...props} />}
+        >
+          <Drawer.Screen
+            name="home/index"
+            options={{
+              title: "Inicio",
+              drawerItemStyle: { display: "none" },
+            }}
+          />
+          <Drawer.Screen
+            name="about/index"
+            options={{
+              title: "Acerca de Joyts",
+              drawerItemStyle: { display: "none" },
+            }}
+          />
+          <Drawer.Screen
+            name="all-movies/index"
+            options={{
+              title: "Todas las películas",
+              drawerItemStyle: { display: "none" },
+            }}
+          />
+          <Drawer.Screen
+            name="movie/[id]"
+            options={{
+              headerShown: false,
+              drawerItemStyle: { display: "none" },
+            }}
+          />
+        </Drawer>
+      </MoviesProvider>
+    </QueryClientProvider>
   );
 }

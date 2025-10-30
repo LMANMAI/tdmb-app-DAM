@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -32,64 +33,55 @@ const API = "https://api.themoviedb.org/3";
 const IMG_W780 = "https://image.tmdb.org/t/p/w780";
 const IMG_W500 = "https://image.tmdb.org/t/p/w500";
 
+const fetchJSON = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`TMDB ${res.status}`);
+  return res.json();
+};
+
 export default function MovieDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const apiKey = process.env.EXPO_PUBLIC_TMDB_KEY;
 
-  const [data, setData] = useState<MovieDetail | null>(null);
-  const [gallery, setGallery] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
+  const detailQ = useQuery<MovieDetail>({
+    queryKey: ["movie", "detail", id],
+    enabled: !!id && !!apiKey,
+    queryFn: () =>
+      fetchJSON(`${API}/movie/${id}?language=es-ES&api_key=${apiKey}`),
+  });
 
-  useEffect(() => {
-    let cancel = false;
-    (async () => {
-      try {
-        if (!apiKey) throw new Error("Falta EXPO_PUBLIC_TMDB_KEY");
-        setLoading(true);
-        setErr(null);
+  const imagesQ = useQuery<MovieImages, Error, string[]>({
+    queryKey: ["movie", "images", id],
+    enabled: !!id && !!apiKey,
+    queryFn: () =>
+      fetchJSON(
+        `${API}/movie/${id}/images?include_image_language=es,en,null&api_key=${apiKey}`
+      ),
+    select: (img) => {
+      const backs =
+        img.backdrops
+          ?.filter((b) => !!b.file_path)
+          .sort((a, b) => (b.width || 0) - (a.width || 0))
+          .slice(0, 8)
+          .map((b) => `${IMG_W780}${b.file_path}`) ?? [];
+      const posts =
+        img.posters
+          ?.filter((p) => !!p.file_path)
+          .slice(0, 6)
+          .map((p) => `${IMG_W500}${p.file_path}`) ?? [];
+      return backs.length > 0 ? backs : posts;
+    },
+  });
 
-        const [resDetail, resImages] = await Promise.all([
-          fetch(`${API}/movie/${id}?language=es-ES&api_key=${apiKey}`),
-          fetch(
-            `${API}/movie/${id}/images?include_image_language=es,en,null&api_key=${apiKey}`
-          ),
-        ]);
-        if (!resDetail.ok) throw new Error(`TMDB ${resDetail.status}`);
-        if (!resImages.ok) throw new Error(`TMDB ${resImages.status}`);
+  const loading = (!apiKey && true) || detailQ.isLoading || imagesQ.isLoading;
+  const err = !apiKey
+    ? "Falta EXPO_PUBLIC_TMDB_KEY"
+    : ((detailQ.error as Error | undefined)?.message ??
+      (imagesQ.error as Error | undefined)?.message ??
+      null);
 
-        const jsonDetail = (await resDetail.json()) as MovieDetail;
-        const jsonImages = (await resImages.json()) as MovieImages;
-
-        if (cancel) return;
-
-        setData(jsonDetail);
-
-        const backs =
-          jsonImages.backdrops
-            ?.filter((b) => !!b.file_path)
-            .sort((a, b) => (b.width || 0) - (a.width || 0))
-            .slice(0, 8)
-            .map((b) => `${IMG_W780}${b.file_path}`) ?? [];
-
-        const posts =
-          jsonImages.posters
-            ?.filter((p) => !!p.file_path)
-            .slice(0, 6)
-            .map((p) => `${IMG_W500}${p.file_path}`) ?? [];
-
-        const merged = backs.length > 0 ? backs : posts;
-        setGallery(merged);
-      } catch (e: any) {
-        if (!cancel) setErr(e?.message ?? "Error");
-      } finally {
-        if (!cancel) setLoading(false);
-      }
-    })();
-    return () => {
-      cancel = true;
-    };
-  }, [id, apiKey]);
+  const data = detailQ.data ?? null;
+  const gallery = imagesQ.data ?? [];
 
   const genres =
     data?.genres && data.genres.length > 0
