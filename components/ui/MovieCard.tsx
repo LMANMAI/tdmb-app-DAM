@@ -1,40 +1,41 @@
 import React from "react";
-import { Image, Pressable, Text, View } from "react-native";
+import { Image, Pressable, View } from "react-native";
 
-type Movie = {
-  id: string | number;
-  title: string;
-  poster: string;
-};
-
+type Movie = { id: string | number; title: string; poster: string };
 type Props = {
   movie: Movie;
   onPress?: (m: Movie) => void;
+  width?: number;
+  height?: number;
 };
 
-export default function MovieCard({ movie, onPress }: Props) {
+export default function MovieCard({
+  movie,
+  onPress,
+  width = 144,
+  height = 224,
+}: Props) {
   return (
     <Pressable
       onPress={() => onPress?.(movie)}
-      className="w-36 mr-4"
-      style={{ overflow: "hidden" }}
+      style={{ width, overflow: "hidden" }}
     >
       <Image
         source={
           typeof movie.poster === "string"
             ? { uri: movie.poster }
-            : movie.poster
+            : (movie.poster as any)
         }
-        className="w-36 h-56 rounded-2xl"
+        style={{ width, height, borderRadius: 16 }}
         resizeMode="cover"
       />
-      <View className="mt-2">
-        <Text
+      <View style={{ marginTop: 8 }}>
+        {/* <Text
           numberOfLines={1}
-          className="text-sm font-medium text-neutral-800"
+          style={{ fontSize: 14, fontWeight: "600", color: "#1f2937" }}
         >
           {movie.title}
-        </Text>
+        </Text> */}
       </View>
     </Pressable>
   );

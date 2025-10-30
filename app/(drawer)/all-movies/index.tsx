@@ -1,8 +1,9 @@
 import CardRow from "@/components/ui/CardRow";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { Fragment, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type ListType = "now_playing" | "popular" | "top_rated" | "upcoming";
 type RowMovie = { id: number | string; title: string; poster: string };
@@ -84,7 +85,7 @@ export default function AllMoviesScreen() {
             <ActivityIndicator size="large" color="#fff" />
           </View>
         ) : (
-          <Fragment>
+          <SafeAreaView>
             {SECTIONS.map((s) =>
               (data[s.type]?.length ?? 0) > 0 ? (
                 <View key={s.type} style={{ marginTop: 16 }}>
@@ -101,7 +102,7 @@ export default function AllMoviesScreen() {
                 </View>
               ) : null
             )}
-          </Fragment>
+          </SafeAreaView>
         )}
       </ScrollView>
     </LinearGradient>

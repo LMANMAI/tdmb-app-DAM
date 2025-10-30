@@ -3,12 +3,14 @@ import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Dimensions,
   Image,
   Pressable,
   ScrollView,
   Text,
   View,
 } from "react-native";
+import Carousel from "react-native-reanimated-carousel";
 
 type MovieDetail = {
   id: number;
@@ -21,14 +23,21 @@ type MovieDetail = {
   budget?: number;
 };
 
+type MovieImages = {
+  backdrops?: { file_path: string; width: number; height: number }[];
+  posters?: { file_path: string; width: number; height: number }[];
+};
+
 const API = "https://api.themoviedb.org/3";
-const IMG = "https://image.tmdb.org/t/p/w500";
+const IMG_W780 = "https://image.tmdb.org/t/p/w780";
+const IMG_W500 = "https://image.tmdb.org/t/p/w500";
 
 export default function MovieDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const apiKey = process.env.EXPO_PUBLIC_TMDB_KEY;
 
   const [data, setData] = useState<MovieDetail | null>(null);
+  const [gallery, setGallery] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -37,12 +46,40 @@ export default function MovieDetailScreen() {
     (async () => {
       try {
         if (!apiKey) throw new Error("Falta EXPO_PUBLIC_TMDB_KEY");
-        const res = await fetch(
-          `${API}/movie/${id}?language=es-ES&api_key=${apiKey}`
-        );
-        if (!res.ok) throw new Error(`TMDB ${res.status}`);
-        const json = (await res.json()) as MovieDetail;
-        if (!cancel) setData(json);
+        setLoading(true);
+        setErr(null);
+
+        const [resDetail, resImages] = await Promise.all([
+          fetch(`${API}/movie/${id}?language=es-ES&api_key=${apiKey}`),
+          fetch(
+            `${API}/movie/${id}/images?include_image_language=es,en,null&api_key=${apiKey}`
+          ),
+        ]);
+        if (!resDetail.ok) throw new Error(`TMDB ${resDetail.status}`);
+        if (!resImages.ok) throw new Error(`TMDB ${resImages.status}`);
+
+        const jsonDetail = (await resDetail.json()) as MovieDetail;
+        const jsonImages = (await resImages.json()) as MovieImages;
+
+        if (cancel) return;
+
+        setData(jsonDetail);
+
+        const backs =
+          jsonImages.backdrops
+            ?.filter((b) => !!b.file_path)
+            .sort((a, b) => (b.width || 0) - (a.width || 0))
+            .slice(0, 8)
+            .map((b) => `${IMG_W780}${b.file_path}`) ?? [];
+
+        const posts =
+          jsonImages.posters
+            ?.filter((p) => !!p.file_path)
+            .slice(0, 6)
+            .map((p) => `${IMG_W500}${p.file_path}`) ?? [];
+
+        const merged = backs.length > 0 ? backs : posts;
+        setGallery(merged);
       } catch (e: any) {
         if (!cancel) setErr(e?.message ?? "Error");
       } finally {
@@ -71,9 +108,13 @@ export default function MovieDetailScreen() {
           maximumFractionDigits: 2,
         }).format(data.budget)
       : "US$0.00";
+
   const posterSource = data?.poster_path
-    ? { uri: `${IMG}${data.poster_path}` }
+    ? { uri: `${IMG_W500}${data.poster_path}` }
     : require("@/assets/hero.png");
+
+  const { width } = Dimensions.get("window");
+  const sliderH = 520;
 
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
@@ -82,7 +123,7 @@ export default function MovieDetailScreen() {
         style={{
           position: "absolute",
           zIndex: 10,
-          top: 16,
+          top: 50,
           left: 12,
           width: 36,
           height: 36,
@@ -119,17 +160,30 @@ export default function MovieDetailScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 24 }}
         >
-          {/* Poster grande */}
-          <Image
-            source={posterSource}
-            resizeMode="cover"
-            style={{
-              width: "100%",
-              height: 420,
-            }}
-          />
+          {gallery.length > 0 ? (
+            <Carousel
+              width={width}
+              height={sliderH}
+              data={gallery}
+              loop
+              autoPlay
+              autoPlayInterval={3200}
+              renderItem={({ item }) => (
+                <Image
+                  source={{ uri: item }}
+                  resizeMode="cover"
+                  style={{ width: "100%", height: "100%" }}
+                />
+              )}
+            />
+          ) : (
+            <Image
+              source={posterSource}
+              resizeMode="cover"
+              style={{ width: "100%", height: sliderH }}
+            />
+          )}
 
-          {/* Tarjeta blanca con info (superpuesta sutil al poster) */}
           <View
             style={{
               marginTop: -16,
@@ -140,13 +194,8 @@ export default function MovieDetailScreen() {
               paddingTop: 16,
             }}
           >
-            {/* Títulos */}
             <Text
-              style={{
-                color: "#6b7280",
-                fontSize: 13,
-                marginBottom: 4,
-              }}
+              style={{ color: "#6b7280", fontSize: 13, marginBottom: 4 }}
               numberOfLines={2}
             >
               {data.original_title}
@@ -164,24 +213,17 @@ export default function MovieDetailScreen() {
               {data.title}
             </Text>
 
-            {/* Calificación */}
             <Text style={{ color: "#111827", marginBottom: 8 }}>
               <Text style={{ fontWeight: "600" }}>Calificación:</Text> {rating}
             </Text>
-
-            {/* Género */}
             <Text style={{ color: "#111827", marginBottom: 8 }}>
               <Text style={{ fontWeight: "600" }}>Género:</Text> {genres}
             </Text>
-
-            {/* Sinopsis */}
             <Text style={{ color: "#111827", marginTop: 8, marginBottom: 12 }}>
               <Text style={{ fontWeight: "600" }}>Sinopsis</Text>
               {"\n"}
               {data.overview || "-"}
             </Text>
-
-            {/* Presupuesto */}
             <Text style={{ color: "#111827", marginTop: 4 }}>
               <Text style={{ fontWeight: "700" }}>Presupuesto: </Text>
               {budget}

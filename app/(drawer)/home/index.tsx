@@ -1,5 +1,4 @@
 import ActionButton from "@/components/ui/ActionButton";
-import CardRow from "@/components/ui/CardRow";
 import {
   Feather,
   MaterialCommunityIcons,
@@ -9,6 +8,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Image, ScrollView, Text, View } from "react-native";
 
+import CardRow from "@/components/ui/CardRow";
 import { router } from "expo-router";
 import { TITLES, useMovies } from "../../../context/movies";
 
@@ -86,12 +86,12 @@ export default function HomeScreen() {
           />
         </View>
 
-        <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
+        <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
           <View
             style={{
+              backgroundColor: "rgba(255, 192, 203, 0.25)",
               borderRadius: 16,
-              overflow: "hidden",
-              padding: 6,
+              padding: 12,
             }}
           >
             <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>
@@ -163,7 +163,7 @@ export default function HomeScreen() {
             <ActivityIndicator size="large" color="#fff" />
           </View>
         ) : (
-          <View style={{ marginTop: 24, paddingBottom: 24 }}>
+          <View style={{ marginTop: 8, paddingHorizontal: 16 }}>
             <CardRow
               title={TITLES[list]}
               data={items}
